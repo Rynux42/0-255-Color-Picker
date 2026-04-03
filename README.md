@@ -1,7 +1,7 @@
 # 0-255 Color Picker
 
-This project is now aviable on [Codeberg](https://codeberg.org/Rynux/0-255_Color_Picker).  
-**If you want use 0-255 Color Picker, go to [Official web](https://0-255-color-picker.netlify.app/).**
+This project is vibe-coded and in future it **won't be** developed.  
+**If you want use 0-255 Color Picker, go to [Demo](https://0-255-color-picker.netlify.app/).**
 
 ## License
 
