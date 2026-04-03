@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>0-255 Color Picker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .color-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: white;
+            border: 2px solid #333;
+            cursor: pointer;
+        }
+        
+        .color-slider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: white;
+            border: 2px solid #333;
+            cursor: pointer;
+        }
+
+        /* Show slider track */
+        .color-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #ddd;
+            outline: none;
+        }
+
+        .color-slider::-webkit-slider-runnable-track {
+            height: 6px;
+            border-radius: 3px;
+        }
+
+        /* Add rounded corners to color picker */
+        #colorPicker {
+            border-radius: 8px;
+        }
+        
+        .color-square {
+            transition: all 0.2s ease;
+            cursor: pointer;
+            aspect-ratio: 1;
+        }
+        
+        .color-square:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top-color: #4f46e5;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header (without color gradient) -->
+        <header class="mb-8 text-center sticky top-0 bg-gray-50/90 backdrop-blur-sm z-20 py-4">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">0-255 Color Picker</h1>
+            <p class="text-gray-600">From Black to Bright</p>
+        </header>
+        
+        <!-- Color Grid -->
+        <div class="grid grid-cols-5 gap-4 mb-8" id="colorGrid">
+            <!-- Color squares will be generated here by JavaScript -->
+        </div>
+        
+        <!-- Loading indicator -->
+        <div id="loadingIndicator" class="hidden flex justify-center py-8">
+            <div class="loading-spinner"></div>
+        </div>
+        
+        <!-- Color Editor (Initially hidden) -->
+        <div id="colorEditor" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto fade-in">
+                <div class="flex flex-col md:flex-row gap-6">
+                    <!-- Color Display -->
+                    <div class="w-full md:w-1/3">
+                        <div 
+                            id="mainColorDisplay" 
+                            class="w-full h-64 rounded-lg shadow-inner flex items-center justify-center relative"
+                        >
+                            <div class="absolute bottom-4 left-4 bg-white/80 backdrop-blur-sm px-3 py-1 rounded-lg">
+                                <span id="currentColorValue" class="font-mono text-sm">#4f46e5</span>
+                            </div>
+                            <button 
+                                id="copyColorBtn" 
+                                class="absolute bottom-4 right-4 bg-white text-gray-800 px-4 py-2 rounded-lg shadow-md hover:bg-gray-100 transition"
+                            >
+                                <i class="fas fa-copy mr-2"></i>Copy
+                            </button>
+                        </div>
+                        
+                        <div class="mt-6">
+                            <h3 class="font-bold text-gray-700 mb-2">RGB Spectrum</h3>
+                            <div class="grid grid-cols-3 gap-2">
+                                <div class="flex flex-col">
+                                    <span class="text-xs text-center text-gray-500 mb-1">R</span>
+                                    <div class="w-full h-6 bg-red-500 rounded"></div>
+                                    <input 
+                                        type="range" 
+                                        id="redSlider" 
+                                        min="0" 
+                                        max="255" 
+                                        value="79"
+                                        class="color-slider w-full mt-2"
+                                    >
+                                    <span id="redValue" class="text-xs font-mono text-center">79</span>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="text-xs text-center text-gray-500 mb-1">G</span>
+                                    <div class="w-full h-6 bg-green-500 rounded"></div>
+                                    <input 
+                                        type="range" 
+                                        id="greenSlider" 
+                                        min="0" 
+                                        max="255" 
+                                        value="70"
+                                        class="color-slider w-full mt-2"
+                                    >
+                                    <span id="greenValue" class="text-xs font-mono text-center">70</span>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="text-xs text-center text-gray-500 mb-1">B</span>
+                                    <div class="w-full h-6 bg-blue-500 rounded"></div>
+                                    <input 
+                                        type="range" 
+                                        id="blueSlider" 
+                                        min="0" 
+                                        max="255" 
+                                        value="229"
+                                        class="color-slider w-full mt-2"
+                                    >
+                                    <span id="blueValue" class="text-xs font-mono text-center">229</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 grid grid-cols-5 gap-2" id="recentColors">
+                            <!-- Recent colors will be added here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Color Controls -->
+                    <div class="w-full md:w-2/3">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold text-gray-800">Color Editor</h2>
+                            <button 
+                                id="closeEditorBtn" 
+                                class="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+                            >
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <label class="block text-gray-700 mb-2">Color Picker</label>
+                            <input 
+                                type="color" 
+                                id="colorPicker" 
+                                value="#4f46e5" 
+                                class="w-full h-12 cursor-pointer"
+                            >
+                        </div>
+                        
+                        <div class="mb-6">
+                            <label class="block text-gray-7 mb-2">Adjust Color</label>
+                            <div class="space-y-4">
+                                <div>
+                                    <div class="flex justify-between mb-1">
+                                        <label class="block text-xs text-gray-500">Hue</label>
+                                        <span id="hueValue" class="text-xs font-mono">243°</span>
+                                    </div>
+                                    <input 
+                                        type="range" 
+                                        id="hueSlider" 
+                                        min="0" 
+                                        max="360" 
+                                        value="243" 
+                                        class="color-slider w-full"
+                                    >
+                                </div>
+                                <div>
+                                    <div class="flex justify-between mb-1">
+                                        <label class="block text-xs text-gray-500">Saturation</label>
+                                        <span id="saturationValue" class="text-xs font-mono">76%</span>
+                                    </div>
+                                    <input 
+                                        type="range" 
+                                        id="saturationSlider" 
+                                        min="0" 
+                                        max="100" 
+                                        value="76" 
+                                        class="color-slider w-full"
+                                    >
+                                </div>
+                                <div>
+                                    <div class="flex justify-between mb-1">
+                                        <label class="block text-xs text-gray-500">Lightness</label>
+                                        <span id="lightnessValue" class="text-xs font-mono">59%</span>
+                                    </div>
+                                    <input 
+                                        type="range" 
+                                        id="lightnessSlider" 
+                                        min="0" 
+                                        max="100" 
+                                        value="59" 
+                                        class="color-slider w-full"
+                                    >
+                                </div>
+                                <div>
+                                    <div class="flex justify-between mb-1">
+                                        <label class="block text-xs text-gray-500">Alpha</label>
+                                        <span id="alphaValue" class="text-xs font-mono">100%</span>
+                                    </div>
+                                    <input 
+                                        type="range" 
+                                        id="alphaSlider" 
+                                        min="0" 
+                                        max="100" 
+                                        value="100" 
+                                        class="color-slider w-full"
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <label class="block text-gray-700 mb-2">Color Formats</label>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs text-gray-500 mb-1">HEX</label>
+                                    <div class="relative">
+                                        <input 
+                                            type="text" 
+                                            id="hexInput" 
+                                            value="#4f46e5" 
+                                            class="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono"
+                                        >
+                                        <button 
+                                            id="copyHex" 
+                                            class="absolute right-2 top-2 text-gray-500 hover:text-gray-700"
+                                        >
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-500 mb-1">RGB</label>
+                                    <div class="relative">
+                                        <input 
+                                            type="text" 
+                                            id="rgbInput" 
+                                            value="rgb(79, 70, 229)" 
+                                            class="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono"
+                                        >
+                                        <button 
+                                            id="copyRgb" 
+                                            class="absolute right-2 top-2 text-gray-500 hover:text-gray-700"
+                                        >
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-500 mb-1">HSL</label>
+                                    <div class="relative">
+                                        <input 
+                                            type="text" 
+                                            id="hslInput" 
+                                            value="hsl(243, 76%, 59%)" 
+                                            class="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono"
+                                        >
+                                        <button 
+                                            id="copyHsl" 
+                                            class="absolute right-2 top-2 text-gray-500 hover:text-gray-700"
+                                        >
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-500 mb-1">HSLA</label>
+                                    <div class="relative">
+                                        <input 
+                                            type="text" 
+                                            id="hslaInput" 
+                                            value="hsla(243, 76%, 59%, 1)" 
+                                            class="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono"
+                                        >
+                                        <button 
+                                            id="copyHsla" 
+                                            class="absolute right-2 top-2 text-gray-500 hover:text-gray-700"
+                                        >
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between">
+                            <button 
+                                id="randomColorBtn" 
+                                class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+                            >
+                                <i class="fas fa-random mr-2"></i>Random
+                            </button>
+                            <button 
+                                id="closeColorBtn" 
+                                class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+                            >
+                                <i class="fas fa-times mr-2"></i>Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <footer class="mt-12 text-center text-gray-500 text-sm pb-8">
+            <p>0-255 Color Picker - From Black to Bright</p>
+            <p class="mt-2">Made with <i class="fas fa-heart text-red-500"></i> for designers and developers</p>
+        </footer>
+    </div>
+
+    <script>
+        // DOM Elements
+        const colorGrid = document.getElementById('colorGrid');
+        const colorEditor = document.getElementById('colorEditor');
+        const mainColorDisplay = document.getElementById('mainColorDisplay');
+        const currentColorValue = document.getElementById('currentColorValue');
+        const colorPicker = document.getElementById('colorPicker');
+        const hueSlider = document.getElementById('hueSlider');
+        const saturationSlider = document.getElementById('saturationSlider');
+        const lightnessSlider = document.getElementById('lightnessSlider');
+        const alphaSlider = document.getElementById('alphaSlider');
+        const redSlider = document.getElementById('redSlider');
+        const greenSlider = document.getElementById('greenSlider');
+        const blueSlider = document.getElementById('blueSlider');
+        const hueValue = document.getElementById('hueValue');
+        const saturationValue = document.getElementById('saturationValue');
+        const lightnessValue = document.getElementById('lightnessValue');
+        const alphaValue = document.getElementById('alphaValue');
+        const redValue = document.getElementById('redValue');
+        const greenValue = document.getElementById('greenValue');
+        const blueValue = document.getElementById('blueValue');
+        const hexInput = document.getElementById('hexInput');
+        const rgbInput = document.getElementById('rgbInput');
+        const hslInput = document.getElementById('hslInput');
+        const hslaInput = document.getElementById('hslaInput');
+        const copyColorBtn = document.getElementById('copyColorBtn');
+        const copyHex = document.getElementById('copyHex');
+        const copyRgb = document.getElementById('copyRgb');
+        const copyHsl = document.getElementById('copyHsl');
+        const copyHsla = document.getElementById('copyHsla');
+        const randomColorBtn = document.getElementById('randomColorBtn');
+        const closeEditorBtn = document.getElementById('closeEditorBtn');
+        const closeColorBtn = document.getElementById('closeColorBtn');
+        const recentColorsContainer = document.getElementById('recentColors');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        
+        // Current color state
+        let currentColor = '#4f46e5';
+        let currentAlpha = 1;
+        let selectedSquare = null;
+        const recentColors = JSON.parse(localStorage.getItem('recentColors')) || [];
+        let isLoading = false;
+        let page = 1;
+        let sliderLock = false;
+        
+        // Initialize the color grid
+        function initColorGrid() {
+            loadMoreColors();
+            
+            // Set up infinite scroll
+            window.addEventListener('scroll', () => {
+                if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500 && !isLoading) {
+                    loadMoreColors();
+                }
+            });
+        }
+        
+        // Load more colors (5x5 grid)
+        function loadMoreColors() {
+            isLoading = true;
+            loadingIndicator.classList.remove('hidden');
+            
+            // Simulate loading delay
+            setTimeout(() => {
+                // Generate 25 random colors (5x5 grid)
+                for (let i = 0; i < 25; i++) {
+                    const color = getRandomColor();
+                    const colorSquare = document.createElement('div');
+                    colorSquare.className = 'color-square rounded-lg shadow-sm relative group';
+                    colorSquare.style.backgroundColor = color;
+                    colorSquare.dataset.color = color;
+                    
+                    // Add color value tooltip
+                    const tooltip = document.createElement('div');
+                    tooltip.className = 'absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity';
+                    tooltip.textContent = color;
+                    colorSquare.appendChild(tooltip);
+                    
+                    colorSquare.addEventListener('click', () => {
+                        selectedSquare = colorSquare;
+                        openColorEditor(color);
+                    });
+                    
+                    colorGrid.appendChild(colorSquare);
+                }
+                
+                isLoading = false;
+                loadingIndicator.classList.add('hidden');
+                page++;
+            }, 500);
+        }
+        
+        // Open color editor with a specific color
+        function openColorEditor(color) {
+            currentColor = color;
+            currentAlpha = 1;
+            
+            // Update the editor UI
+            updateEditorDisplay();
+            
+            // Show the editor
+            colorEditor.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            
+            // Add to recent colors
+            addToRecentColors(color);
+        }
+        
+        // Close color editor
+        function closeColorEditor() {
+            colorEditor.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+        
+        // Update all editor displays with current color
+        function updateEditorDisplay() {
+            // Convert current color to RGB
+            const rgb = hexToRgb(currentColor);
+            
+            // Prevent slider movements from interfering
+            if (!sliderLock) {
+                // Update RGB sliders
+                redSlider.value = rgb.r;
+                greenSlider.value = rgb.g;
+                blueSlider.value = rgb.b;
+                
+                // Convert to HSL
+                const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+                
+                // Update HSL sliders
+                hueSlider.value = Math.round(hsl.h);
+                saturationSlider.value = Math.round(hsl.s);
+                lightnessSlider.value = Math.round(hsl.l);
+                
+                // Update slider labels
+                hueValue.textContent = `${Math.round(hsl.h)}°`;
+                saturationValue.textContent = `${Math.round(hsl.s)}%`;
+                lightnessValue.textContent = `${Math.round(hsl.l)}%`;
+            }
+            
+            // Update alpha slider
+            alphaSlider.value = Math.round(currentAlpha * 100);
+            
+            // Update slider labels
+            alphaValue.textContent = `${Math.round(currentAlpha * 100)}%`;
+            redValue.textContent = rgb.r;
+            greenValue.textContent = rgb.g;
+            blueValue.textContent = rgb.b;
+            
+            // Update color display
+            mainColorDisplay.style.backgroundColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${currentAlpha})`;
+            currentColorValue.textContent = currentAlpha === 1 ? currentColor : rgbaToHex(rgb.r, rgb.g, rgb.b, currentAlpha);
+            
+            // Update color picker
+            colorPicker.value = currentColor;
+            
+            // Update color format inputs with alpha support
+            hexInput.value = currentAlpha === 1 ? currentColor : rgbaToHex(rgb.r, rgb.g, rgb.b, currentAlpha);
+            
+            if (currentAlpha === 1) {
+                rgbInput.value = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+            } else {
+                rgbInput.value = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${currentAlpha})`;
+            }
+            
+            hslInput.value = `hsl(${hueSlider.value}, ${saturationSlider.value}%, ${lightnessSlider.value}%)`;
+            hslaInput.value = `hsla(${hueSlider.value}, ${saturationSlider.value}%, ${lightnessSlider.value}%, ${currentAlpha})`;
+        }
+        
+        // Add color to recent colors
+        function addToRecentColors(color) {
+            // Remove if already exists
+            const index = recentColors.indexOf(color);
+            if (index !== -1) {
+                recentColors.splice(index, 1);
+            }
+            
+            // Add to beginning
+            recentColors.unshift(color);
+            
+            // Keep only last 5
+            if (recentColors.length > 5) {
+                recentColors.pop();
+            }
+            
+            // Save to localStorage
+            localStorage.setItem('recentColors', JSON.stringify(recentColors));
+            
+            // Update recent colors display
+            updateRecentColorsDisplay();
+        }
+        
+        // Update recent colors display
+        function updateRecentColorsDisplay() {
+            recentColorsContainer.innerHTML = '';
+            
+            recentColors.forEach(color => {
+                const colorSquare = document.createElement('div');
+                colorSquare.className = 'aspect-square rounded cursor-pointer hover:scale-105 transition-transform';
+                colorSquare.style.backgroundColor = color;
+                colorSquare.title = color;
+                
+                colorSquare.addEventListener('click', () => {
+                    openColorEditor(color);
+                });
+                
+                recentColorsContainer.appendChild(colorSquare);
+            });
+            
+            // Fill remaining spots with empty divs
+            for (let i = recentColors.length; i < 5; i++) {
+                const emptyDiv = document.createElement('div');
+                emptyDiv.className = 'aspect-square rounded bg-gray-200';
+                recentColorsContainer.appendChild(emptyDiv);
+            }
+        }
+        
+        // Generate a random hex color
+        function getRandomColor() {
+            const r = Math.floor(Math.random() * 256);
+            const g = Math.floor(Math.random() * 256);
+            const b = Math.floor(Math.random() * 256);
+            return rgbToHex(r, g, b);
+        }
+        
+        // Convert hex to RGB
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : { r: 0, g: 0, b: 0 };
+        }
+        
+        // Convert RGB to hex
+        function rgbToHex(r, g, b) {
+            return '#' + [r, g, b].map(x => {
+                const hex = x.toString(16);
+                return hex.length === 1 ? '0' + hex : hex;
+            }).join('');
+        }
+        
+        // Convert RGBA to hex with alpha
+        function rgbaToHex(r, g, b, a) {
+            const alpha = Math.round(a * 255).toString(16).padStart(2, '0');
+            return '#' + [r, g, b].map(x => {
+                const hex = x.toString(16);
+                return hex.length === 1 ? '0' + hex : hex;
+            }).join('') + alpha;
+        }
+        
+        // Convert RGB to HSL
+        function rgbToHsl(r, g, b) {
+            r /= 255, g /= 255, b /= 255;
+            
+            const max = Math.max(r, g, b), min = Math.min(r, g, b);
+            let h, s, l = (max + min) / 2;
+            
+            if (max === min) {
+                h = s = 0; // achromatic
+            } else {
+                const d = max - min;
+                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                
+                switch (max) {
+                    case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                    case g: h = (b - r) / d + 2; break;
+                    case b: h = (r - g) / d + 4; break;
+                }
+                
+                h /= 6;
+            }
+            
+            return {
+                h: h * 360,
+                s: s * 100,
+                l: l * 100
+            };
+        }
+        
+        // Copy to clipboard with feedback
+        function copyToClipboard(text, button) {
+            navigator.clipboard.writeText(text).then(() => {
+                // Show feedback
+                const tooltip = document.createElement('div');
+                tooltip.className = 'absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-full bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap';
+                tooltip.textContent = 'Copied!';
+                
+                button.appendChild(tooltip);
+                
+                setTimeout(() => {
+                    tooltip.remove();
+                }, 1000);
+            });
+        }
+        
+        // Event Listeners
+        colorPicker.addEventListener('input', () => {
+            currentColor = colorPicker.value;
+            currentAlpha = 1;
+            updateEditorDisplay();
+        });
+        
+        hueSlider.addEventListener('input', () => {
+            sliderLock = true;
+            
+            const rgb = hexToRgb(currentColor);
+            const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+            hsl.h = parseInt(hueSlider.value);
+            currentColor = hslToHex(hsl.h, hsl.s, hsl.l);
+            hueValue.textContent = `${hsl.h}°`;
+            
+            // Update display without affecting other sliders
+            const newRGB = hexToRgb(currentColor);
+            redSlider.value = newRGB.r;
+            greenSlider.value = newRGB.g;
+            blueSlider.value = newRGB.b;
+            redValue.textContent = newRGB.r;
+            greenValue.textContent = newRGB.g;
+            blueValue.textContent = newRGB.b;
+            
+            updateEditorDisplay();
+            sliderLock = false;
+        });
+        
+        saturationSlider.addEventListener('input', () => {
+            sliderLock = true;
+            
+            const rgb = hexToRgb(currentColor);
+            const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+            hsl.s = parseInt(saturationSlider.value);
+            currentColor = hslToHex(hsl.h, hsl.s, hsl.l);
+            saturationValue.textContent = `${hsl.s}%`;
+            
+            // Update display without affecting other sliders
+            const newRGB = hexToRgb(currentColor);
+            redSlider.value = newRGB.r;
+            greenSlider.value = newRGB.g;
+            blueSlider.value = newRGB.b;
+            redValue.textContent = newRGB.r;
+            greenValue.textContent = newRGB.g;
+            blueValue.textContent = newRGB.b;
+            
+            updateEditorDisplay();
+            sliderLock = false;
+        });
+        
+        lightnessSlider.addEventListener('input', () => {
+            sliderLock = true;
+            
+            const rgb = hexToRgb(currentColor);
+            const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+            hsl.l = parseInt(lightnessSlider.value);
+            currentColor = hslToHex(hsl.h, hsl.s, hsl.l);
+            lightnessValue.textContent = `${hsl.l}%`;
+            
+            // Update display without affecting other sliders
+            const newRGB = hexToRgb(currentColor);
+            redSlider.value = newRGB.r;
+            greenSlider.value = newRGB.g;
+            blueSlider.value = newRGB.b;
+            redValue.textContent = newRGB.r;
+            greenValue.textContent = newRGB.g;
+            blueValue.textContent = newRGB.b;
+            
+            updateEditorDisplay();
+            sliderLock = false;
+        });
+        
+        alphaSlider.addEventListener('input', () => {
+            currentAlpha = parseInt(alphaSlider.value) / 100;
+            alphaValue.textContent = `${alphaSlider.value}%`;
+            
+            // Update color display with new alpha
+            const rgb = hexToRgb(currentColor);
+            mainColorDisplay.style.backgroundColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${currentAlpha})`;
+            currentColorValue.textContent = rgbaToHex(rgb.r, rgb.g, rgb.b, currentAlpha);
+            
+            // Update all color formats
+            updateEditorDisplay();
+        });
+        
+        // RGB sliders
+        redSlider.addEventListener('input', () => {
+            sliderLock = true;
+            
+            const rgb = hexToRgb(currentColor);
+            currentColor = rgbToHex(parseInt(redSlider.value), rgb.g, rgb.b);
+            redValue.textContent = redSlider.value;
+            
+            // Convert new color to HSL
+            const newHSL = rgbToHsl(parseInt(redSlider.value), rgb.g, rgb.b);
+            
+            // Update HSL sliders without triggering change
+            hueSlider.value = Math.round(newHSL.h);
+            saturationSlider.value = Math.round(newHSL.s);
+            lightnessSlider.value = Math.round(newHSL.l);
+            hueValue.textContent = `${Math.round(newHSL.h)}°`;
+            saturationValue.textContent = `${Math.round(newHSL.s)}%`;
+            lightnessValue.textContent = `${Math.round(newHSL.l)}%`;
+            
+            updateEditorDisplay();
+            sliderLock = false;
+        });
+        
+        greenSlider.addEventListener('input', () => {
+            sliderLock = true;
+            
+            const rgb = hexToRgb(currentColor);
+            currentColor = rgbToHex(rgb.r, parseInt(greenSlider.value), rgb.b);
+            greenValue.textContent = greenSlider.value;
+            
+            // Convert new color to HSL
+            const newHSL = rgbToHsl(rgb.r, parseInt(greenSlider.value), rgb.b);
+            
+            // Update HSL sliders without triggering change
+            hueSlider.value = Math.round(newHSL.h);
+            saturationSlider.value = Math.round(newHSL.s);
+            lightnessSlider.value = Math.round(newHSL.l);
+            hueValue.textContent = `${Math.round(newHSL.h)}°`;
+            saturationValue.textContent = `${Math.round(newHSL.s)}%`;
+            lightnessValue.textContent = `${Math.round(newHSL.l)}%`;
+            
+            updateEditorDisplay();
+            sliderLock = false;
+        });
+        
+        blueSlider.addEventListener('input', () => {
+            sliderLock = true;
+            
+            const rgb = hexToRgb(currentColor);
+            currentColor = rgbToHex(rgb.r, rgb.g, parseInt(blueSlider.value));
+            blueValue.textContent = blueSlider.value;
+            
+            // Convert new color to HSL
+            const newHSL = rgbToHsl(rgb.r, rgb.g, parseInt(blueSlider.value));
+            
+            // Update HSL sliders without triggering change
+            hueSlider.value = Math.round(newHSL.h);
+            saturationSlider.value = Math.round(newHSL.s);
+            lightnessSlider.value = Math.round(newHSL.l);
+            hueValue.textContent = `${Math.round(newHSL.h)}°`;
+            saturationValue.textContent = `${Math.round(newHSL.s)}%`;
+            lightnessValue.textContent = `${Math.round(newHSL.l)}%`;
+            
+            updateEditorDisplay();
+            sliderLock = false;
+        });
+        
+        // Format input changes
+        hexInput.addEventListener('change', () => {
+            const hex = hexInput.value;
+            if (/^#[0-9A-F]{6}$/i.test(hex) || /^#[0-9A-F]{8}$/i.test(hex)) {
+                currentColor = hex.length === 7 ? hex : hex.substring(0, 7);
+                if (hex.length === 9) {
+                    currentAlpha = parseInt(hex.substring(7, 9), 16) / 255;
+                    alphaSlider.value = Math.round(currentAlpha * 100);
+                    alphaValue.textContent = `${alphaSlider.value}%`;
+                }
+                updateEditorDisplay();
+            }
+        });
+        
+        rgbInput.addEventListener('change', () => {
+            const rgbMatch = rgbInput.value.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)$/i);
+            if (rgbMatch) {
+                const r = parseInt(rgbMatch[1]);
+                const g = parseInt(rgbMatch[2]);
+                const b = parseInt(rgbMatch[3]);
+                currentColor = rgbToHex(r, g, b);
+                
+                // Handle alpha if present
+                if (rgbMatch[4]) {
+                    currentAlpha = parseFloat(rgbMatch[4]);
+                    alphaSlider.value = Math.round(currentAlpha * 100);
+                    alphaValue.textContent = `${alphaSlider.value}%`;
+                } else {
+                    currentAlpha = 1;
+                }
+                
+                updateEditorDisplay();
+            }
+        });
+        
+        hslInput.addEventListener('change', () => {
+            const hslMatch = hslInput.value.match(/^hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)$/i);
+            if (hslMatch) {
+                const h = parseInt(hslMatch[1]);
+                const s = parseInt(hslMatch[2]);
+                const l = parseInt(hslMatch[3]);
+                currentColor = hslToHex(h, s, l);
+                currentAlpha = 1;
+                updateEditorDisplay();
+            }
+        });
+        
+        hslaInput.addEventListener('change', () => {
+            const hslMatch = hslaInput.value.match(/^hsla\((\d+),\s*(\d+)%,\s*(\d+)%,\s*([01]?\.\d+|\d+)\)$/i);
+            if (hslMatch) {
+                const h = parseInt(hslMatch[1]);
+                const s = parseInt(hslMatch[2]);
+                const l = parseInt(hslMatch[3]);
+                currentAlpha = parseFloat(hslMatch[4]);
+                currentColor = hslToHex(h, s, l);
+                alphaSlider.value = Math.round(currentAlpha * 100);
+                alphaValue.textContent = `${alphaSlider.value}%`;
+                updateEditorDisplay();
+            }
+        });
+        
+        // Copy buttons
+        copyColorBtn.addEventListener('click', () => {
+            const rgb = hexToRgb(currentColor);
+            const text = currentAlpha === 1 ? currentColor : rgbaToHex(rgb.r, rgb.g, rgb.b, currentAlpha);
+            copyToClipboard(text, copyColorBtn);
+        });
+        
+        copyHex.addEventListener('click', () => {
+            copyToClipboard(hexInput.value, copyHex);
+        });
+        
+        copyRgb.addEventListener('click', () => {
+            copyToClipboard(rgbInput.value, copyRgb);
+        });
+        
+        copyHsl.addEventListener('click', () => {
+            copyToClipboard(hslInput.value, copyHsl);
+        });
+        
+        copyHsla.addEventListener('click', () => {
+            copyToClipboard(hslaInput.value, copyHsla);
+        });
+        
+        // Random color button
+        randomColorBtn.addEventListener('click', () => {
+            currentColor = getRandomColor();
+            currentAlpha = 1;
+            updateEditorDisplay();
+            addToRecentColors(currentColor);
+        });
+        
+        // Close editor buttons
+        closeEditorBtn.addEventListener('click', () => {
+            closeColorEditor();
+        });
+        
+        closeColorBtn.addEventListener('click', () => {
+            closeColorEditor();
+        });
+        
+        // Close editor when clicking outside
+        colorEditor.addEventListener('click', (e) => {
+            if (e.target === colorEditor) {
+                closeColorEditor();
+            }
+        });
+        
+        // Helper function: Convert HSL to Hex
+        function hslToHex(h, s, l) {
+            h /= 360;
+            s /= 100;
+            l /= 100;
+            
+            let r, g, b;
+            
+            if (s === 0) {
+                r = g = b = l; // achromatic
+            } else {
+                const hue2rgb = (p, q, t) => {
+                    if (t < 0) t += 1;
+                    if (t > 1) t -= 1;
+                    if (t < 1/6) return p + (q - p) * 6 * t;
+                    if (t < 1/2) return q;
+                    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                    return p;
+                };
+                
+                const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                const p = 2 * l - q;
+                
+                r = hue2rgb(p, q, h + 1/3);
+                g = hue2rgb(p, q, h);
+                b = hue2rgb(p, q, h - 1/3);
+            }
+            
+            return rgbToHex(
+                Math.round(r * 255),
+                Math.round(g * 255),
+                Math.round(b * 255)
+            );
+        }
+        
+        // Initialize the app
+        initColorGrid();
+        updateRecentColorsDisplay();
+    </script>
+</body>
+</html>
